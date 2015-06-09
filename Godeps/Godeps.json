@@ -1,0 +1,15 @@
+{
+	"ImportPath": "github.com/mnbbrown/iwantin",
+	"GoVersion": "go1.4.2",
+	"Deps": [
+		{
+			"ImportPath": "github.com/drone/config",
+			"Rev": "07959646128e2907af00753ed0278692ccc19b43"
+		},
+		{
+			"ImportPath": "github.com/pelletier/go-toml",
+			"Comment": "v0.2.1-14-g36d65b6",
+			"Rev": "36d65b681a9f120e3bf6f8d0586aa5d0e4519b25"
+		}
+	]
+}
