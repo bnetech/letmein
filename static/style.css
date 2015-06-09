@@ -1,0 +1,133 @@
+body {
+  font-size: 100%;
+  font-family: "Open Sans", sans-serif;
+  color: #444d65;
+  background-color: white;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.invite-form-wrapper {
+  width: 90%;
+  max-width: 768px;
+  position: relative;
+  margin: 8em auto;
+  flex: 1;
+}
+
+a {
+  text-decoration: inherit;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+#invite-form {
+  position: relative;
+  display: flex;
+  width: 100%;
+  /*background: #f3cb6d;*/
+  height: 60px;
+  font-size: 1.2rem;
+  margin: 1em 0;
+}
+
+.form-overlay {
+  box-sizing: border-box;
+  line-height: 60px;
+  text-align: center;
+  font-weight: 300;
+}
+
+#form-loading {
+  display: none;
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  display: none;
+  opacity: 0.8;
+  background-color: #fff;
+  z-index: 999;
+}
+
+#form-success {
+  display: none;
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  border-radius: 3px;
+  color: #fff;
+  background-color: #fff;
+  z-index: 999;
+  background-color: #4c9689;
+}
+
+#form-failure {
+  display: none;
+  padding-left: 20px;
+  border-left: solid 3px #edb431; 
+}
+
+.invite-email {
+  top: 0;
+  left: 0;
+  width: 75%;
+  bottom: 0;
+  transition: bottom 0.3s, background-color 0.3s;
+  padding-left: 20px;
+  background-color: rgba(0,0,0,0);
+  box-sizing: border-box;
+  border: solid 1px #efefef;
+  height: 100%;
+  font-weight: 300;
+  z-index: 1;
+  font-family: inherit;
+  border-radius: 3px 0 0 3px;
+  font-size: inherit;
+}
+
+.input-error {
+  border-color: #edb431;
+  border-right: none;
+}
+
+.invite-submit {
+  width: 25%;
+  height: 100%;
+  background: #444d65;
+  color: #fff;
+  border: none;
+  font-size: inherit;
+  font-weight: 300;
+  font-family: inherit;
+  border-radius: 0 3px 3px 0;
+  cursor: pointer;
+}
+
+footer {
+  border-box: box-sizing;
+  font-size: 0.8em;
+  text-align: center;
+  flex: 2;
+}
+
+.is-active .invite-submit {
+  display: block;
+  animation: invite-bounce-in ease-out 0.4s;
+}
+
+@keyframes invite-bounce-in {
+  0% {
+    top: 100%;
+  }
+
+  60% {
+    top: 45%;
+  }
+
+  100% {
+    top: 50%;
+  }
+}

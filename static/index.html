@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Join Us</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="http://fonts.googleapis.com/css?family=Open+Sans:400,300,700" rel="stylesheet" type="text/css">
+</head>
+<body>
+    <div class="invite-form-wrapper">
+        <h2>Join the bnete.ch conversation.</h2>
+        <p><a href="/">bnete.ch</a> is a group of chat channels for Brisbane area developers, designers, marketers, business people, hobbyists, students and others.</p>
+        <p>Join our open <a href="https://www.slack.com/">Slack</a> community to talk events, moocs, startups etc.</p>
+        <form id="invite-form">
+            <div id="form-loading" class="form-overlay">Please wait.</div>
+            <div id="form-success" class="form-overlay">Great! An invite should be in your inbox soon!</div>
+            <input type="email" id="invite-email" class="invite-email" name="email" placeholder="Enter your email address">
+            <input type="submit" class="invite-submit" value="Submit">
+        </form>
+        <div id="form-failure"></div>
+        <p>The current moderators are:</p>
+        <ul>
+            <li><a href="http://twitter.com/mnbbrown">Matthew Brown (@mnbbrown)</a></li>
+            <li><a href="http://twitter.com/smitec">Elliot Smith (@smitec)</a></li>
+        </ul>
+        <p>If you’d like to participate as an admin or to invite your group to the discussion, just ask one of them how to get involved.</p>
+    </div>
+    <footer>The bnete.ch community runs on <a href="https://www.slack.com/">Slack</a>. The code behind this form is on <a href="https://github.com/mnbbrown/letmein">Github</a>.</footer>
+</body>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/modernizr/2.8.3/modernizr.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/2.1.4/jquery.min.js"></script>
+<script src="script.js"></script>
+</html>
