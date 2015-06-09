@@ -22,6 +22,7 @@ const (
 var (
 	slackURL   = config.String("slack-url", "https://bnetech.slack.com/")
 	slackToken = config.String("slack-token", "")
+    captchaSecret = config.Strinf("captcha-secret", "")
 )
 
 func SendRequest(baseurl string, resource string, data map[string]string) (*http.Response, error) {
@@ -29,7 +30,7 @@ func SendRequest(baseurl string, resource string, data map[string]string) (*http
 	for k, v := range data {
 		d.Set(k, v)
 	}
-	d.Set("token", *slackToken)
+	//d.Set("token", *slackToken) moved out to make this more general
 	u, _ := url.ParseRequestURI(baseurl)
 	u.Path = resource
 	urlStr := fmt.Sprintf("%v", u) // "https://api.com/user/"
@@ -47,6 +48,15 @@ type slackResponse struct {
 
 func (s *slackResponse) Error() string {
 	return s.ErrorString
+}
+
+type captchaResponse struct {
+    Success     bool     `json:"success"`
+    ErrorCodes  []string `json:"error-codes,omitempty"
+}
+
+func (c *captchaResponse) CaptchaStatus() boolean {
+    return c.Success
 }
 
 func HandleInviteRequest(rw http.ResponseWriter, req *http.Request) {
@@ -68,8 +78,49 @@ func HandleInviteRequest(rw http.ResponseWriter, req *http.Request) {
 		return
 	}
 
+    cpatcha := req.Form.Get("g-recaptcha-response")
+    if captcha == "" {
+        http.Error(rw, "Something went wrong with the Captcha, are you a robot?", http.StatusBadRequest)
+        return
+    }
+
+    // Ask google if the captcha was okay
+    resp, _ := SendRequest("https://www.google.com/recaptcha", "/api/sitverify", map[string]string{
+        "secret": *captchaSecret,
+        "response": captcha,
+        })
+    // Note, can add remoteip but I dunno how :)
+    if resp == nil {
+        log.Println("[Error] Error submitting captcha")
+       http.Error(rw, INTERNAL_SERVER_ERROR_MESSAGE, http.StatusInternalServerError)
+        return
+    }
+    // it worked but we need to check the result
+    contents, err := ioutil.ReadAll(resp.body)
+    if err != nil {
+        log.Printf("[Error] Error decoding captcha response (%s)\n", err.Error())
+        http.Error(hw, INTERNAL_SERVER_ERROR_MESSAGE, http.StatusInternalServerError)
+        return
+    }
+    var cap captchaResponse
+    err = json.Unmarshal(contents, &cap)
+    if err != nil {
+        log.Printf("[Error] Error decoding captcha error (%s)\n", err.Error())
+        // I have a feeling this wont work because I didnt implement Error ^
+        // @mnbbrown
+    }
+
+    if cap.Success != true {
+        log.printf("[Captcha] Captcha Failed")
+        http.Error(rw, "Captcha Failed", http.StatusBadRequest)
+        // @mnbbrown should maybe print the error strings, I dunno
+        return
+    }
+    
+
 	resp, _ := SendRequest(*slackURL, "/api/users.admin.invite", map[string]string{
 		"email": email,
+        "token": *slackToken,
 	})
 	if resp == nil {
 
@@ -133,6 +184,9 @@ func main() {
 	if *slackToken == "" {
 		log.Fatalln("IWANTIN_SLACK_TOKEN must be set.")
 	}
+    if *captchaSecret == "" {
+        log.Fatalln("IWANTIN_CAPTCHA_SECRET must be set.")
+    }
 
 	log.Println("Starting Auto-Inviter")
 	log.Printf("Slack URL: %s\n", *slackURL)
