@@ -7,6 +7,16 @@
 			"Rev": "07959646128e2907af00753ed0278692ccc19b43"
 		},
 		{
+			"ImportPath": "github.com/jmoiron/sqlx",
+			"Comment": "sqlx-v1.0-45-gaa6f196",
+			"Rev": "aa6f196bd82f2024e5f0b5d5e6cf3b21414be8b4"
+		},
+		{
+			"ImportPath": "github.com/lib/pq",
+			"Comment": "go1.0-cutoff-22-g73672c2",
+			"Rev": "73672c22431294bd2d012742dfc488523cc631bd"
+		},
+		{
 			"ImportPath": "github.com/pelletier/go-toml",
 			"Comment": "v0.2.1-14-g36d65b6",
 			"Rev": "36d65b681a9f120e3bf6f8d0586aa5d0e4519b25"
