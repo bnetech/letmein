@@ -17,8 +17,9 @@
             <div id="form-loading" class="form-overlay">Please wait.</div>
             <div id="form-success" class="form-overlay">Great! An invite should be in your inbox soon!</div>
             <input type="email" id="invite-email" class="invite-email" name="email" placeholder="Enter your email address">
-            <input type="submit" class="invite-submit" value="Submit">
-            <div class="g-recaptcha" data-sitekey="6LdoHQgTAAAAAJdhPAxDMWN8iEL-9IxLxycuzq2a"></div>
+            <input type="text" id="page-opended" class="invite-meta" name="page-opended">
+            <input type="text" id="honeypot" class="invite-meta" name="honeypot" value="test">
+            <input type="submit" class="invite-submit" name="captcha" value="Submit">
         </form>
         <div id="form-failure"></div>
         <p>The current moderators are:</p>
@@ -26,7 +27,7 @@
             <li><a href="http://twitter.com/mnbbrown">Matthew Brown (@mnbbrown)</a></li>
             <li><a href="http://twitter.com/smitec">Elliot Smith (@smitec)</a></li>
         </ul>
-        <p>If you’d like to participate as an admin or to invite your group to the discussion, just ask one of them how to get involved.</p>
+        <p>If you’d like to participate as an moderator or to invite your group to the discussion, just ask one of them how to get involved.</p>
     </div>
     <footer>The bnete.ch community runs on <a href="https://www.slack.com/">Slack</a>. The code behind this form is on <a href="https://github.com/mnbbrown/letmein">Github</a>.</footer>
 </body>

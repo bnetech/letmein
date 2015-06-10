@@ -13,6 +13,7 @@ import (
 	"os"
 	"regexp"
 	"strconv"
+	"time"
 )
 
 const (
@@ -20,9 +21,8 @@ const (
 )
 
 var (
-	slackURL      = config.String("slack-url", "https://bnetech.slack.com/")
-	slackToken    = config.String("slack-token", "")
-	captchaSecret = config.String("captcha-secret", "")
+	slackURL   = config.String("slack-url", "https://bnetech.slack.com/")
+	slackToken = config.String("slack-token", "")
 )
 
 func SendRequest(baseurl string, resource string, data map[string]string) (*http.Response, error) {
@@ -50,15 +50,6 @@ func (s *slackResponse) Error() string {
 	return s.ErrorString
 }
 
-type captchaResponse struct {
-	Success    bool     `json:"success"`
-	ErrorCodes []string `json:"error-codes,omitempty"`
-}
-
-func (c *captchaResponse) CaptchaStatus() bool {
-	return c.Success
-}
-
 func HandleInviteRequest(rw http.ResponseWriter, req *http.Request) {
 	err := req.ParseForm()
 	if err != nil {
@@ -67,7 +58,26 @@ func HandleInviteRequest(rw http.ResponseWriter, req *http.Request) {
 		return
 	}
 
+	now := time.Now().UTC()
+
+	pageOpened := req.Form.Get("page-opended")
+	honeypot := req.Form.Get("honeypot")
 	email := req.Form.Get("email")
+
+	t, err := time.Parse(time.RFC3339Nano, "2013-06-05T14:10:43.678Z")
+	if err != nil {
+		log.Printf("[ERROR] Failed to parse date (%s): %s", pageOpened, err.Error())
+		http.Error(rw, INTERNAL_SERVER_ERROR_MESSAGE, http.StatusInternalServerError)
+		return
+	}
+	log.Printf("[INFO] INF01 Time Diff = %vs", now.Sub(t.UTC()).Seconds())
+
+	if honeypot != "" {
+		log.Printf("[ERROR] Failed to parse date (%s): %s", pageOpened, err.Error())
+		http.Error(rw, "Looks like you're a robot :(", http.StatusBadRequest)
+		return
+	}
+
 	if email == "" {
 		http.Error(rw, "Ooops. We need your email address to send the invite.", http.StatusBadRequest)
 		return
@@ -78,47 +88,7 @@ func HandleInviteRequest(rw http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	captcha := req.Form.Get("g-recaptcha-response")
-	if captcha == "" {
-		http.Error(rw, "Something went wrong with the Captcha, are you a robot?", http.StatusBadRequest)
-		return
-	}
-
-	// Ask google if the captcha was okay
-	resp, _ := SendRequest("https://www.google.com/recaptcha", "/api/sitverify", map[string]string{
-		"secret":   *captchaSecret,
-		"response": captcha,
-	})
-
-	// Note, can add remoteip but I dunno how :)
-	if resp == nil {
-		log.Println("[Error] Error submitting captcha")
-		http.Error(rw, INTERNAL_SERVER_ERROR_MESSAGE, http.StatusInternalServerError)
-		return
-	}
-	// it worked but we need to check the result
-	contents, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		log.Printf("[Error] Error decoding captcha response (%s)\n", err.Error())
-		http.Error(rw, INTERNAL_SERVER_ERROR_MESSAGE, http.StatusInternalServerError)
-		return
-	}
-	var cap captchaResponse
-	err = json.Unmarshal(contents, &cap)
-	if err != nil {
-		log.Printf("[Error] Error decoding captcha error (%s)\n", err.Error())
-		// I have a feeling this wont work because I didnt implement Error ^
-		// @mnbbrown
-	}
-
-	if cap.Success != true {
-		log.Println("[Captcha] Captcha Failed")
-		http.Error(rw, "Captcha Failed", http.StatusBadRequest)
-		// @mnbbrown should maybe print the error strings, I dunno
-		return
-	}
-
-	resp, _ = SendRequest(*slackURL, "/api/users.admin.invite", map[string]string{
+	resp, _ := SendRequest(*slackURL, "/api/users.admin.invite", map[string]string{
 		"email": email,
 		"token": *slackToken,
 	})
@@ -170,6 +140,8 @@ func HandleInviteRequest(rw http.ResponseWriter, req *http.Request) {
 	}
 }
 
+var db *sql.DB
+
 func main() {
 	c := flag.String("c", "", "Location of the configuration file.")
 	config.SetPrefix("IWANTIN_")
@@ -181,11 +153,9 @@ func main() {
 	if *slackURL == "" {
 		log.Fatalln("IWANTIN_SLACK_URL must be set.")
 	}
+
 	if *slackToken == "" {
 		log.Fatalln("IWANTIN_SLACK_TOKEN must be set.")
-	}
-	if *captchaSecret == "" {
-		log.Fatalln("IWANTIN_CAPTCHA_SECRET must be set.")
 	}
 
 	log.Println("Starting Auto-Inviter")

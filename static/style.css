@@ -8,6 +8,10 @@ body {
   flex-direction: column;
 }
 
+* {
+  box-sizing: border-box;
+}
+
 .invite-form-wrapper {
   width: 90%;
   max-width: 768px;
@@ -91,6 +95,10 @@ a:hover {
 .input-error {
   border-color: #edb431;
   border-right: none;
+}
+
+.invite-meta {
+  display: none;
 }
 
 .invite-submit {
