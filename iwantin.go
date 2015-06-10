@@ -79,7 +79,7 @@ func HandleInviteRequest(rw http.ResponseWriter, req *http.Request) {
 	honeypot := req.Form.Get("honeypot")
 	email := req.Form.Get("email")
 
-	t, err := time.Parse(time.RFC3339Nano, "2013-06-05T14:10:43.678Z")
+	t, err := time.Parse(time.RFC3339Nano, pageOpened)
 	if err != nil {
 		log.Printf("[ERROR] Failed to parse date (%s): %s", t, err.Error())
 		http.Error(rw, INTERNAL_SERVER_ERROR_MESSAGE, http.StatusInternalServerError)
