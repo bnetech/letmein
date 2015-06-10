@@ -101,6 +101,22 @@ a:hover {
   display: none;
 }
 
+/* This gets Google to fall into place */
+.social {
+  font-size: 1px;
+  text-align: center;
+}
+ 
+/* This gets Facebook to fall into place */
+.social iframe {
+  vertical-align: middle;
+}
+
+.social span {
+  display: inline-block;
+  width: 100px;
+}
+
 .invite-submit {
   width: 24%;
   height: 100%;
