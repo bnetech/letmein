@@ -6,6 +6,8 @@ import (
 	"flag"
 	"fmt"
 	"github.com/drone/config"
+	"github.com/jmoiron/sqlx"
+	_ "github.com/lib/pq"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -21,8 +23,9 @@ const (
 )
 
 var (
-	slackURL   = config.String("slack-url", "https://bnetech.slack.com/")
-	slackToken = config.String("slack-token", "")
+	slackURL    = config.String("slack-url", "https://bnetech.slack.com/")
+	slackToken  = config.String("slack-token", "")
+	postgresDSN = config.String("postgres-url", os.Getenv("DATABASE_URL"))
 )
 
 func SendRequest(baseurl string, resource string, data map[string]string) (*http.Response, error) {
@@ -30,10 +33,9 @@ func SendRequest(baseurl string, resource string, data map[string]string) (*http
 	for k, v := range data {
 		d.Set(k, v)
 	}
-	//d.Set("token", *slackToken) moved out to make this more general
 	u, _ := url.ParseRequestURI(baseurl)
 	u.Path = resource
-	urlStr := fmt.Sprintf("%v", u) // "https://api.com/user/"
+	urlStr := fmt.Sprintf("%v", u)
 
 	r, _ := http.NewRequest("POST", urlStr, bytes.NewBufferString(d.Encode()))
 	r.Header.Add("Content-Type", "application/x-www-form-urlencoded")
@@ -48,6 +50,19 @@ type slackResponse struct {
 
 func (s *slackResponse) Error() string {
 	return s.ErrorString
+}
+
+func SaveRequest(req *http.Request, email string, pageOpened time.Time, formSubmitted time.Time, honeypot string) {
+	if db == nil {
+		log.Println("[WARN] Not writing to database. Check logs")
+		return
+	}
+	_, err := db.Exec("INSERT INTO submissions (IPAddress, Email, PageOpened, FormSubmitted, HoneyPot) VALUES ($1,$2,$3,$4,$5)",
+		req.RemoteAddr, email, pageOpened, formSubmitted, honeypot)
+	if err != nil {
+		log.Printf("[ERROR] Failed to write to DB: %s", err.Error())
+		return
+	}
 }
 
 func HandleInviteRequest(rw http.ResponseWriter, req *http.Request) {
@@ -66,11 +81,13 @@ func HandleInviteRequest(rw http.ResponseWriter, req *http.Request) {
 
 	t, err := time.Parse(time.RFC3339Nano, "2013-06-05T14:10:43.678Z")
 	if err != nil {
-		log.Printf("[ERROR] Failed to parse date (%s): %s", pageOpened, err.Error())
+		log.Printf("[ERROR] Failed to parse date (%s): %s", t, err.Error())
 		http.Error(rw, INTERNAL_SERVER_ERROR_MESSAGE, http.StatusInternalServerError)
 		return
 	}
 	log.Printf("[INFO] INF01 Time Diff = %vs", now.Sub(t.UTC()).Seconds())
+
+	go SaveRequest(req, email, t, now, honeypot)
 
 	if honeypot != "" {
 		log.Printf("[ERROR] Failed to parse date (%s): %s", pageOpened, err.Error())
@@ -111,10 +128,10 @@ func HandleInviteRequest(rw http.ResponseWriter, req *http.Request) {
 		err = json.Unmarshal(contents, &serr)
 		if err != nil {
 			log.Printf("[ERROR] Error decoding slack error (%s)\n", err.Error())
-			log.Printf("Status Code: %v\n", resp.StatusCode)
-			log.Printf("Ok: %v\n", serr.Ok)
-			log.Printf("Error String: %v\n", serr.ErrorString)
-			log.Printf("Body: %s\n", string(contents))
+			log.Printf("[DEBUG] Status Code: %v\n", resp.StatusCode)
+			log.Printf("[DEBUG] Ok: %v\n", serr.Ok)
+			log.Printf("[DEBUG] Error String: %v\n", serr.ErrorString)
+			log.Printf("[DEBUG] Body: %s\n", string(contents))
 			http.Error(rw, INTERNAL_SERVER_ERROR_MESSAGE, http.StatusInternalServerError)
 			return
 		}
@@ -125,11 +142,11 @@ func HandleInviteRequest(rw http.ResponseWriter, req *http.Request) {
 				http.Error(rw, INTERNAL_SERVER_ERROR_MESSAGE, http.StatusInternalServerError)
 				return
 			case serr.ErrorString == "already_invited" || serr.ErrorString == "sent_recently":
-				log.Printf("[ERROR] Already invited (%s)\n", email)
+				log.Printf("[DEBUG] Already invited (%s)\n", email)
 				http.Error(rw, "Looks like you've already requested an invite. Check your inbox (or your spam) again.", http.StatusBadRequest)
 				return
 			case serr.ErrorString == "already_in_team":
-				log.Printf("[ERROR] Already a member (%s)\n", email)
+				log.Printf("[DEBUG] Already a member (%s)\n", email)
 				http.Error(rw, "Looks like you're already a member!", http.StatusBadRequest)
 			default:
 				log.Printf("[ERROR] Unknown error (%s)\n", serr.Error())
@@ -140,7 +157,7 @@ func HandleInviteRequest(rw http.ResponseWriter, req *http.Request) {
 	}
 }
 
-var db *sql.DB
+var db *sqlx.DB
 
 func main() {
 	c := flag.String("c", "", "Location of the configuration file.")
@@ -160,6 +177,16 @@ func main() {
 
 	log.Println("Starting Auto-Inviter")
 	log.Printf("Slack URL: %s\n", *slackURL)
+
+	if *postgresDSN == "" {
+		log.Println("[WARN] IWANTIN_DATABASE_URL or DATABASE_URL is not set: not storing submissions.")
+	} else {
+		db, err = sqlx.Connect("postgres", *postgresDSN)
+		if err != nil {
+			log.Fatalln(err.Error())
+		}
+		log.Printf("Database: %s", *postgresDSN)
+	}
 
 	http.Handle("/", http.FileServer(http.Dir("./static")))
 	http.HandleFunc("/invite", HandleInviteRequest)
