@@ -25,7 +25,7 @@ body {
 /* Small Devices, Tablets */
 @media only screen and (min-width : 768px) {
   #invite-form {
-      font-size: 1.2rem;
+    font-size: 1.2rem;
   }
 }
 
@@ -62,7 +62,10 @@ a:hover {
   width: 100%;
   /*background: #f3cb6d;*/
   height: 60px;
-
+  -webkit-appearance: caret;
+  -moz-appearance: caret;
+  -o-appearance: caret;
+  appearance: caret;
   margin: 1em 0;
 }
 
