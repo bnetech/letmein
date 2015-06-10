@@ -160,22 +160,3 @@ footer {
   text-align: center;
   flex: 2;
 }
-
-.is-active .invite-submit {
-  display: block;
-  animation: invite-bounce-in ease-out 0.4s;
-}
-
-@keyframes invite-bounce-in {
-  0% {
-    top: 100%;
-  }
-
-  60% {
-    top: 45%;
-  }
-
-  100% {
-    top: 50%;
-  }
-}
