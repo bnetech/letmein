@@ -141,6 +141,9 @@ a:hover {
   display: table-cell;
   width: 24%;
   height: 100%;
+  padding: 0;
+  margin: 0;
+  text-align: center;
   background: #444d65;
   color: #fff;
   border: none;
