@@ -58,7 +58,8 @@ a:hover {
 
 #invite-form {
   position: relative;
-  display: flex;
+  display: table;
+  border-collapse: separate;
   width: 100%;
   /*background: #f3cb6d;*/
   height: 60px;
@@ -106,11 +107,12 @@ a:hover {
 }
 
 .invite-email {
+  position: relative;
+  float: left;
   top: 0;
   left: 0;
   width: 75%;
   bottom: 0;
-  transition: bottom 0.3s, background-color 0.3s;
   padding-left: 20px;
   background-color: rgba(0,0,0,0);
   box-sizing: border-box;
@@ -121,6 +123,11 @@ a:hover {
   font-family: inherit;
   border-radius: 3px 0 0 3px;
   font-size: inherit;
+  display: table-cell;
+}
+
+.invite-meta {
+  display: none;
 }
 
 
@@ -130,27 +137,8 @@ a:hover {
   border-right: none;
 }
 
-.invite-meta {
-  display: none;
-}
-
-/* This gets Google to fall into place */
-.social {
-  font-size: 1px;
-  text-align: center;
-}
-
-/* This gets Facebook to fall into place */
-.social iframe {
-  vertical-align: middle;
-}
-
-.social span {
-  display: inline-block;
-  width: 100px;
-}
-
 .invite-submit {
+  display: table-cell;
   width: 24%;
   height: 100%;
   background: #444d65;
