@@ -39,6 +39,24 @@ body {
 
 }
 
+#unsupported-browser {
+  position: absolute;
+  display: block;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 50px;
+  background-color: #edb431;
+  display: none;
+  text-align: center;
+  line-height: 50px;
+  font-weight: 400;
+}
+
+#unsupported-browser.show {
+  display: block;
+}
+
 
 .invite-form-wrapper {
   width: 90%;
