@@ -1,0 +1,9 @@
+CREATE TABLE help (
+    HelpId SERIAL PRIMARY KEY NOT NULL,
+    HelpText TEXT NOT NULL,
+    HelpContact VARCHAR(500) NOT NULL,
+    PageOpened TIMESTAMP NOT NULL,
+    FormSubmitted TIMESTAMP NOT NULL,
+    Approved BOOLEAN NOT NULL DEFAULT FALSE,
+    ApprovedBy VARCHAR NULL
+);

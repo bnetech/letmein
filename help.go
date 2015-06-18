@@ -25,13 +25,13 @@ func HandleNewHelpRequest(rw http.ResponseWriter, req *http.Request) {
 	honeypot := req.Form.Get("help-honeypot")
 	text := req.Form.Get("help-text")
 	contact := req.Form.Get("help-contact")
-	t := time.Now().UTC()
-	// t, err := time.Parse(time.RFC3339Nano, pageOpened)
-	// if err != nil {
-	// 	log.Printf("[ERROR] Failed to parse date (%s): %s", t, err.Error())
-	// 	http.Error(rw, INTERNAL_SERVER_ERROR_MESSAGE, http.StatusInternalServerError)
-	// 	return
-	// }
+
+	t, err := time.Parse(time.RFC3339, pageOpened)
+	if err != nil {
+		log.Printf("[ERROR] Failed to parse date (%s): %s", pageOpened, err.Error())
+		http.Error(rw, INTERNAL_SERVER_ERROR_MESSAGE, http.StatusInternalServerError)
+		return
+	}
 	log.Printf("[INFO] INF01 Time Diff = %vs", now.Sub(t.UTC()).Seconds())
 
 	if honeypot != "" {
@@ -59,9 +59,10 @@ func HandleNewHelpRequest(rw http.ResponseWriter, req *http.Request) {
 	}
 
 	var id int
-	err = db.QueryRow("INSERT INTO help (HelpText, HelpContact, PageOpened, FormSubmitted) VALUES ($1,$2,$3,$4) RETURNING HelpId;", text, contact, pageOpened, now).Scan(&id)
+	err = db.QueryRow("INSERT INTO help (HelpText, HelpContact, PageOpened, FormSubmitted) VALUES ($1,$2,$3,$4) RETURNING HelpId;", text, contact, t, now).Scan(&id)
 	if err != nil {
 		log.Printf("[ERROR] Failed to write to DB: %s", err.Error())
+		http.Error(rw, INTERNAL_SERVER_ERROR_MESSAGE, http.StatusInternalServerError)
 		return
 	}
 
