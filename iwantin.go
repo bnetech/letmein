@@ -6,6 +6,7 @@ import (
 	"flag"
 	"fmt"
 	"github.com/drone/config"
+	"github.com/gorilla/schema"
 	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
 	"io/ioutil"
@@ -23,23 +24,44 @@ const (
 )
 
 var (
-	slackURL    = config.String("slack-url", "https://bnetech.slack.com/")
-	slackToken  = config.String("slack-token", "")
-	postgresDSN = config.String("postgres-url", os.Getenv("DATABASE_URL"))
+	slackURL        = config.String("slack-url", "https://bnetech.slack.com/")
+	slackToken      = config.String("slack-token", "")
+	slackSlashToken = config.String("slack-slash-token", "")
+	slackJobChannel = config.String("slack-job-channel", "#jobs")
+	postgresDSN     = config.String("postgres-url", os.Getenv("DATABASE_URL"))
 )
 
-func SendRequest(baseurl string, resource string, data map[string]string) (*http.Response, error) {
-	d := url.Values{}
-	for k, v := range data {
-		d.Set(k, v)
-	}
+func SendRequest(method string, baseurl string, resource string, data map[string]string) (*http.Response, error) {
 	u, _ := url.ParseRequestURI(baseurl)
 	u.Path = resource
-	urlStr := fmt.Sprintf("%v", u)
 
-	r, _ := http.NewRequest("POST", urlStr, bytes.NewBufferString(d.Encode()))
-	r.Header.Add("Content-Type", "application/x-www-form-urlencoded")
-	r.Header.Add("Content-Length", strconv.Itoa(len(d.Encode())))
+	var r *http.Request
+
+	switch {
+	case method == "POST":
+
+		d := url.Values{}
+		for k, v := range data {
+			d.Add(k, v)
+		}
+		urlStr := fmt.Sprintf("%v", u.String())
+		log.Println(urlStr)
+		r, _ = http.NewRequest(method, urlStr, bytes.NewBufferString(d.Encode()))
+		r.Header.Add("Content-Type", "application/x-www-form-urlencoded")
+		r.Header.Add("Content-Length", strconv.Itoa(len(d.Encode())))
+
+	case method == "GET":
+		query := u.Query()
+		for k, v := range data {
+			query.Set(k, v)
+		}
+		u.RawQuery = query.Encode()
+		urlStr := fmt.Sprintf("%v", u)
+		log.Println(urlStr)
+		r, _ = http.NewRequest(method, urlStr, nil)
+
+	}
+
 	return http.DefaultClient.Do(r)
 }
 
@@ -63,6 +85,62 @@ func SaveRequest(req *http.Request, email string, pageOpened time.Time, formSubm
 		log.Printf("[ERROR] Failed to write to DB: %s", err.Error())
 		return
 	}
+}
+
+type slackMembersResponse struct {
+	Ok      bool          `json:"ok"`
+	Members []interface{} `json:"members"`
+}
+
+func ReadJSONResponse(resp *http.Response, v interface{}) error {
+	contents, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return err
+	}
+	err = json.Unmarshal(contents, v)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+type groupStats struct {
+}
+
+func HandleStatsRequest(rw http.ResponseWriter, req *http.Request) {
+
+	resp, err := SendRequest("GET", *slackURL, "/api/users.list", map[string]string{
+		"token": *slackToken,
+	})
+
+	if err != nil {
+		log.Printf("[ERROR] Stats Request %s\n", err.Error())
+		http.Error(rw, INTERNAL_SERVER_ERROR_MESSAGE, http.StatusInternalServerError)
+		return
+	}
+
+	var memberInfo *slackMembersResponse
+	err = ReadJSONResponse(resp, &memberInfo)
+	if err != nil {
+		log.Printf("[ERROR] Stats Request %s\n", err.Error())
+		http.Error(rw, INTERNAL_SERVER_ERROR_MESSAGE, http.StatusInternalServerError)
+	}
+
+	b, err := json.Marshal(struct {
+		Users    int `json:"users"`
+		Channels int `json:"channels"`
+	}{
+		len(memberInfo.Members),
+		0,
+	})
+	if err != nil {
+		log.Printf("[ERROR] Stats Request %s\n", err.Error())
+		http.Error(rw, INTERNAL_SERVER_ERROR_MESSAGE, http.StatusInternalServerError)
+		return
+	}
+	rw.Header().Set("Content-Type", "application/json")
+	rw.Header().Set("Content-Length", strconv.Itoa(len(b)))
+	rw.Write(b)
 }
 
 func HandleInviteRequest(rw http.ResponseWriter, req *http.Request) {
@@ -105,7 +183,7 @@ func HandleInviteRequest(rw http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	resp, _ := SendRequest(*slackURL, "/api/users.admin.invite", map[string]string{
+	resp, _ := SendRequest("POST", *slackURL, "/api/users.admin.invite", map[string]string{
 		"email": email,
 		"token": *slackToken,
 	})
@@ -158,6 +236,7 @@ func HandleInviteRequest(rw http.ResponseWriter, req *http.Request) {
 }
 
 var db *sqlx.DB
+var formDecoder *schema.Decoder
 
 func main() {
 	c := flag.String("c", "", "Location of the configuration file.")
@@ -175,6 +254,10 @@ func main() {
 		log.Fatalln("IWANTIN_SLACK_TOKEN must be set.")
 	}
 
+	if *slackSlashToken == "" {
+		log.Fatalln("IWANTIN_SLACK_SLASH_TOKEN must be set.")
+	}
+
 	log.Println("Starting Auto-Inviter")
 	log.Printf("Slack URL: %s\n", *slackURL)
 
@@ -188,8 +271,13 @@ func main() {
 		log.Printf("Database: %s", *postgresDSN)
 	}
 
+	formDecoder = schema.NewDecoder()
+
 	http.Handle("/", http.FileServer(http.Dir("./static")))
 	http.HandleFunc("/invite", HandleInviteRequest)
+	http.HandleFunc("/stats", HandleStatsRequest)
+	http.HandleFunc("/help/request", HandleNewHelpRequest)
+	http.HandleFunc("/help/approve", HandleHelpRequestApproval)
 	err = http.ListenAndServe(":"+os.Getenv("PORT"), nil)
 	if err != nil {
 		panic(err)
