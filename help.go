@@ -112,7 +112,7 @@ func HandleHelpRequestApproval(rw http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	if ss.Token != *slackToken {
+	if ss.Token != *slackSlashToken {
 		log.Printf("[ERROR] An incorrect token was sent with the request: %s", ss.Token)
 		http.Error(rw, "Sorry, we don't recognise that token.", http.StatusUnauthorized)
 		return
